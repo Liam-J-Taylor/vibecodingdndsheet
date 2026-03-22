@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>D&D 5e Digital Tracker</title>
+    <style>
+        :root {
+            --bg-color: #f4f1ea;
+            --surface: #ffffff;
+            --text-main: #2b2b2b;
+            --text-muted: #555555;
+            --border: #d4c4a8;
+            --primary: #8b0000;
+            --primary-hover: #b22222;
+            --accent: #e5a93e;
+            --input-bg: #fdfdfd;
+            --modal-bg: rgba(0, 0, 0, 0.5);
+            --radius: 6px;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #121212;
+            --surface: #1e1e1e;
+            --text-main: #e0e0e0;
+            --text-muted: #a0a0a0;
+            --border: #333333;
+            --primary: #c21807;
+            --primary-hover: #e53935;
+            --accent: #f0b95b;
+            --input-bg: #2c2c2c;
+            --modal-bg: rgba(0, 0, 0, 0.7);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        body { background-color: var(--bg-color); color: var(--text-main); padding: 20px; transition: background 0.3s, color 0.3s; }
+
+        .container { max-width: 1200px; margin: 0 auto; }
+
+        /* Header & Top Bar */
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid var(--primary); }
+        h1 { color: var(--primary); font-family: Georgia, serif; }
+        .controls { display: flex; gap: 10px; }
+        button { background: var(--primary); color: white; border: none; padding: 8px 12px; border-radius: var(--radius); cursor: pointer; font-weight: bold; transition: background 0.2s; }
+        button:hover { background: var(--primary-hover); }
+        button.secondary { background: var(--surface); color: var(--text-main); border: 1px solid var(--border); }
+        button.secondary:hover { background: var(--border); }
+
+        /* Profile Section */
+        .profile-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; background: var(--surface); padding: 15px; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 20px; }
+        .input-group { display: flex; flex-direction: column; }
+        .input-group label { font-size: 0.8rem; font-weight: bold; color: var(--text-muted); text-transform: uppercase; margin-bottom: 4px; }
+        input[type="text"], input[type="number"], textarea, select { width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--input-bg); color: var(--text-main); outline: none; }
+        input:focus, textarea:focus, select:focus { border-color: var(--primary); }
+
+        /* Main Layout Grid */
+        .main-grid { display: grid; grid-template-columns: 1fr 1.5fr 1.2fr; gap: 20px; }
+        @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+
+        .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 15px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .card h2 { font-size: 1.2rem; color: var(--primary); margin-bottom: 15px; border-bottom: 1px solid var(--border); padding-bottom: 5px; font-family: Georgia, serif; }
+
+        /* Stats & Skills */
+        .stat-box { display: flex; align-items: center; justify-content: space-between; background: var(--bg-color); padding: 8px; border-radius: var(--radius); border: 1px solid var(--border); margin-bottom: 8px; }
+        .stat-box strong { width: 40px; }
+        .stat-input { width: 50px !important; text-align: center; font-weight: bold; font-size: 1.1rem; }
+        .stat-mod { font-size: 1.2rem; font-weight: bold; width: 40px; text-align: right; }
+        .save-row { font-size: 0.85rem; display: flex; align-items: center; gap: 5px; width: 80px; }
+
+        .prof-box { text-align: center; font-size: 1.2rem; font-weight: bold; background: var(--primary); color: white; padding: 10px; border-radius: var(--radius); margin-bottom: 15px; }
+
+        .skill-row { display: flex; align-items: center; gap: 10px; padding: 4px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+        .skill-row:last-child { border-bottom: none; }
+        .skill-mod { font-weight: bold; width: 25px; text-align: right; }
+
+        /* Combat & HP */
+        .combat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; text-align: center; margin-bottom: 15px; }
+        .combat-box { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; background: var(--bg-color); }
+        .combat-box label { display: block; font-size: 0.8rem; font-weight: bold; color: var(--text-muted); }
+        .combat-box input { text-align: center; font-size: 1.5rem; border: none; background: transparent; width: 100%; font-weight: bold; }
+
+        .hp-manager { display: flex; gap: 10px; margin-top: 10px; }
+        .hp-manager input { flex: 1; text-align: center; }
+
+        /* Text Areas */
+        textarea { resize: vertical; min-height: 80px; margin-bottom: 10px; }
+
+        /* Dynamic Lists (Items/Spells) */
+        .list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        details { background: var(--bg-color); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 10px; }
+        summary { padding: 10px; font-weight: bold; cursor: pointer; outline: none; user-select: none; }
+        summary:hover { background: var(--surface); }
+        .item-card { padding: 10px; border-top: 1px solid var(--border); background: var(--surface); }
+        .item-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .item-card em { font-size: 0.85rem; color: var(--accent); display: block; margin-bottom: 5px; font-weight: bold; }
+        .item-card p { font-size: 0.9rem; white-space: pre-wrap; color: var(--text-muted); }
+        .action-btns button { background: none; color: var(--text-muted); padding: 2px 5px; font-size: 1rem; }
+        .action-btns button:hover { color: var(--primary); }
+
+        .spell-slot-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-bottom: 15px; }
+        .spell-slot-box { border: 1px solid var(--border); padding: 5px; text-align: center; border-radius: 4px; font-size: 0.8rem; background: var(--bg-color); }
+        .spell-slot-box input { width: 35px; padding: 2px; text-align: center; }
+
+        /* Modals */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--modal-bg); justify-content: center; align-items: center; z-index: 1000; }
+        .modal-content { background: var(--surface); padding: 20px; border-radius: var(--radius); width: 90%; max-width: 500px; border: 1px solid var(--border); max-height: 90vh; overflow-y: auto; }
+        .modal-content h3 { margin-bottom: 15px; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+        .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+
+        /* Tabs */
+        .tabs { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--border); }
+        .tab { padding: 10px 20px; cursor: pointer; border-radius: var(--radius) var(--radius) 0 0; background: var(--surface); font-weight: bold; color: var(--text-muted); }
+        .tab.active { background: var(--primary); color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>D&D 5e Tracker</h1>
+        <div class="controls">
+            <button class="secondary" onclick="toggleTheme()">🌓 Theme</button>
+            <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
+            <button class="secondary" onclick="document.getElementById('importFile').click()">📂 Import</button>
+            <button class="secondary" onclick="exportData()">💾 Export</button>
+        </div>
+    </header>
+
+    <div class="profile-grid">
+        <div class="input-group"><label>Character Name</label><input type="text" data-bind="profile.name"></div>
+        <div class="input-group"><label>Class</label><input type="text" data-bind="profile.class"></div>
+        <div class="input-group"><label>Level</label><input type="number" data-bind="profile.level" data-recalc="true" min="1" max="20"></div>
+        <div class="input-group"><label>Race</label><input type="text" data-bind="profile.race"></div>
+        <div class="input-group"><label>Background</label><input type="text" data-bind="profile.background"></div>
+        <div class="input-group"><label>Alignment</label><input type="text" data-bind="profile.alignment"></div>
+        <div class="input-group"><label>EXP</label><input type="text" data-bind="profile.xp"></div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('main')">Main Sheet</div>
+        <div class="tab" onclick="switchTab('spells')">Spellbook</div>
+    </div>
+
+    <div id="tab-main" class="tab-content active main-grid">
+        <div>
+            <div class="prof-box">Proficiency Bonus: <span id="prof-bonus">+2</span></div>
+            <div class="card">
+                <h2>Attributes & Saves</h2>
+                <div id="stats-container"></div>
+            </div>
+            <div class="card">
+                <h2>Skills</h2>
+                <div id="skills-container"></div>
+            </div>
+        </div>
+
+        <div>
+            <div class="card">
+                <h2>Combat</h2>
+                <div class="combat-grid">
+                    <div class="combat-box"><label>Armor Class</label><input type="number" data-bind="combat.ac"></div>
+                    <div class="combat-box"><label>Initiative</label><input type="number" data-bind="combat.init"></div>
+                    <div class="combat-box"><label>Speed (ft)</label><input type="number" data-bind="combat.speed"></div>
+                </div>
+                <div class="combat-grid">
+                    <div class="combat-box" style="grid-column: span 2;">
+                        <label>Hit Points (Current / Max)</label>
+                        <div style="display:flex; align-items:center;">
+                            <input type="number" data-bind="combat.hp"> <span style="font-size:1.5rem">/</span> <input type="number" data-bind="combat.maxHp">
+                        </div>
+                    </div>
+                    <div class="combat-box"><label>Temp HP</label><input type="number" data-bind="combat.tempHp"></div>
+                </div>
+                <div class="hp-manager">
+                    <input type="number" id="hp-mod-input" placeholder="Amount" min="1">
+                    <button onclick="modifyHP('damage')" style="background:var(--primary)">Take Damage</button>
+                    <button onclick="modifyHP('heal')" style="background:green">Heal</button>
+                </div>
+                <div class="combat-box" style="margin-top: 15px;">
+                    <label>Hit Dice (Total & Spent)</label>
+                    <input type="text" data-bind="combat.hitDice" placeholder="e.g. 3d10 (1 spent)">
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Features & Traits</h2>
+                <div class="input-group"><label>Racial Traits</label><textarea data-bind="features.racial"></textarea></div>
+                <div class="input-group"><label>Class Features</label><textarea data-bind="features.class"></textarea></div>
+                <div class="input-group"><label>Feats</label><textarea data-bind="features.feats"></textarea></div>
+                <div class="input-group"><label>Other Notes</label><textarea data-bind="features.notes"></textarea></div>
+            </div>
+        </div>
+
+        <div>
+            <div class="card">
+                <div class="list-header">
+                    <h2>Inventory</h2>
+                    <button onclick="openModal('itemModal', 'new')">+ Add Item</button>
+                </div>
+                <div class="input-group" style="margin-bottom: 15px;">
+                    <label>Gold / Wealth</label>
+                    <input type="text" data-bind="inventory.gold" placeholder="GP, SP, CP...">
+                </div>
+                <div id="inventory-lists"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-spells" class="tab-content">
+        <div class="card">
+            <h2>Spell Slots</h2>
+            <div class="spell-slot-grid" id="spell-slots-container"></div>
+        </div>
+        <div class="card">
+            <div class="list-header">
+                <h2>Spellbook</h2>
+                <button onclick="openModal('spellModal', 'new')">+ Add Spell</button>
+            </div>
+            <div id="spell-lists"></div>
+        </div>
+    </div>
+</div>
+
+<div id="itemModal" class="modal">
+    <div class="modal-content">
+        <h3 id="itemModalTitle">Add Item</h3>
+        <input type="hidden" id="itemId">
+        <div class="input-group" style="margin-bottom:10px;"><label>Name *</label><input type="text" id="itemName"></div>
+        <div class="input-group" style="margin-bottom:10px;"><label>Category</label>
+            <select id="itemCat">
+                <option>Armor & Shields</option><option>Weapons</option><option>Consumables</option>
+                <option>Gear</option><option>Wands & Rings</option><option>Misc</option>
+            </select>
+        </div>
+        <div class="input-group" style="margin-bottom:10px;"><label>Attributes (e.g. 1d8 Slashing, +1 AC)</label><input type="text" id="itemAttr"></div>
+        <div class="input-group" style="margin-bottom:10px;"><label>Description *</label><textarea id="itemDesc"></textarea></div>
+        <div class="modal-actions">
+            <button class="secondary" onclick="closeModal('itemModal')">Cancel</button>
+            <button onclick="saveItem()">Save Item</button>
+        </div>
+    </div>
+</div>
+
+<div id="spellModal" class="modal">
+    <div class="modal-content">
+        <h3 id="spellModalTitle">Add Spell</h3>
+        <input type="hidden" id="spellId">
+        <div class="input-group" style="margin-bottom:10px;"><label>Name *</label><input type="text" id="spellName"></div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom:10px;">
+            <div class="input-group"><label>Level</label>
+                <select id="spellLevel">
+                    <option value="0">Cantrip</option><option value="1">Level 1</option><option value="2">Level 2</option>
+                    <option value="3">Level 3</option><option value="4">Level 4</option><option value="5">Level 5</option>
+                    <option value="6">Level 6</option><option value="7">Level 7</option><option value="8">Level 8</option><option value="9">Level 9</option>
+                </select>
+            </div>
+            <div class="input-group"><label>School</label><input type="text" id="spellSchool" placeholder="e.g. Evocation"></div>
+            <div class="input-group"><label>Casting Time</label><input type="text" id="spellTime" placeholder="1 Action"></div>
+            <div class="input-group"><label>Range</label><input type="text" id="spellRange" placeholder="120 ft"></div>
+            <div class="input-group"><label>Components</label><input type="text" id="spellComp" placeholder="V, S, M"></div>
+            <div class="input-group"><label>Duration</label><input type="text" id="spellDur" placeholder="Instantaneous"></div>
+        </div>
+        <div class="input-group" style="margin-bottom:10px;"><label>Damage/Effect (Optional)</label><input type="text" id="spellDmg"></div>
+        <div class="input-group" style="margin-bottom:10px;"><label>Description *</label><textarea id="spellDesc"></textarea></div>
+        <div class="input-group" style="margin-bottom:10px; flex-direction:row; align-items:center; gap:5px;">
+            <input type="checkbox" id="spellPrepared" style="width:auto;"> <label style="margin:0;">Prepared</label>
+        </div>
+        <div class="modal-actions">
+            <button class="secondary" onclick="closeModal('spellModal')">Cancel</button>
+            <button onclick="saveSpell()">Save Spell</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    /* --- DATA STRUCTURE & INIT --- */
+    const defaultData = {
+        profile: { name: '', class: '', level: 1, race: '', background: '', alignment: '', xp: '' },
+        stats: { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 },
+        combat: { hp: 10, maxHp: 10, tempHp: 0, ac: 10, init: 0, speed: 30, hitDice: '' },
+        saves: { str: false, dex: false, con: false, int: false, wis: false, cha: false },
+        skills: {}, // Auto-populated
+        inventory: { gold: '', items: [] },
+        spells: { slots: Array.from({length: 10}, () => ({total: 0, used: 0})), list: [] },
+        features: { racial: '', class: '', feats: '', notes: '' }
+    };
+
+    let charData = JSON.parse(localStorage.getItem('dd5e_data')) || defaultData;
+    
+    // Patch old saves
+    if(!charData.spells.slots) charData.spells.slots = Array.from({length: 10}, () => ({total: 0, used: 0}));
+
+    const statsList = ['str', 'dex', 'con', 'int', 'wis', 'cha'];
+    const skillsList = [
+        { id: 'acrobatics', name: 'Acrobatics', stat: 'dex' }, { id: 'animalHandling', name: 'Animal Handling', stat: 'wis' },
+        { id: 'arcana', name: 'Arcana', stat: 'int' }, { id: 'athletics', name: 'Athletics', stat: 'str' },
+        { id: 'deception', name: 'Deception', stat: 'cha' }, { id: 'history', name: 'History', stat: 'int' },
+        { id: 'insight', name: 'Insight', stat: 'wis' }, { id: 'intimidation', name: 'Intimidation', stat: 'cha' },
+        { id: 'investigation', name: 'Investigation', stat: 'int' }, { id: 'medicine', name: 'Medicine', stat: 'wis' },
+        { id: 'nature', name: 'Nature', stat: 'int' }, { id: 'perception', name: 'Perception', stat: 'wis' },
+        { id: 'performance', name: 'Performance', stat: 'cha' }, { id: 'persuasion', name: 'Persuasion', stat: 'cha' },
+        { id: 'religion', name: 'Religion', stat: 'int' }, { id: 'sleightOfHand', name: 'Sleight of Hand', stat: 'dex' },
+        { id: 'stealth', name: 'Stealth', stat: 'dex' }, { id: 'survival', name: 'Survival', stat: 'wis' }
+    ];
+
+    function save() { localStorage.setItem('dd5e_data', JSON.stringify(charData)); }
+
+    /* --- UI GENERATION --- */
+    function generateStatBlocks() {
+        const container = document.getElementById('stats-container');
+        container.innerHTML = statsList.map(stat => `
+            <div class="stat-box">
+                <strong>${stat.toUpperCase()}</strong>
+                <input type="number" class="stat-input" data-bind="stats.${stat}" data-recalc="true">
+                <div class="stat-mod" id="mod-${stat}">+0</div>
+                <div class="save-row">
+                    <input type="checkbox" data-bind="saves.${stat}" data-recalc="true"> Save <span id="save-${stat}">+0</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function generateSkillBlocks() {
+        const container = document.getElementById('skills-container');
+        container.innerHTML = skillsList.map(skill => `
+            <div class="skill-row">
+                <input type="checkbox" data-bind="skills.${skill.id}" data-recalc="true">
+                <span class="skill-mod" id="skill-${skill.id}">+0</span>
+                <span>${skill.name} <small>(${skill.stat.toUpperCase()})</small></span>
+            </div>
+        `).join('');
+    }
+
+    function generateSpellSlots() {
+        const container = document.getElementById('spell-slots-container');
+        container.innerHTML = Array.from({length: 9}).map((_, i) => {
+            const lvl = i + 1;
+            return `
+            <div class="spell-slot-box">
+                <strong>Lv ${lvl}</strong><br>
+                <input type="number" data-bind="spells.slots.${lvl}.used" min="0"> /
+                <input type="number" data-bind="spells.slots.${lvl}.total" min="0">
+            </div>`;
+        }).join('');
+    }
+
+    /* --- DATA BINDING & CALCULATION --- */
+    function bindDataToInputs() {
+        document.querySelectorAll('[data-bind]').forEach(el => {
+            const keys = el.dataset.bind.split('.');
+            let val = charData;
+            keys.forEach(k => val = val?.[k]);
+
+            if (el.type === 'checkbox') el.checked = !!val;
+            else el.value = val !== undefined ? val : '';
+
+            // Clean previous listeners by replacing node if necessary, but simpler to just avoid duplicate bindings 
+            // by doing this once on init.
+            el.addEventListener('input', (e) => {
+                let obj = charData;
+                for (let i = 0; i < keys.length - 1; i++) obj = obj[keys[i]];
+                obj[keys[keys.length - 1]] = e.target.type === 'checkbox' ? e.target.checked : (e.target.type === 'number' ? Number(e.target.value) : e.target.value);
+                save();
+                if (e.target.dataset.recalc) updateDerivedStats();
+            });
+        });
+    }
+
+    function getMod(score) { return Math.floor((score - 10) / 2); }
+    function formatMod(mod) { return mod >= 0 ? `+${mod}` : mod; }
+
+    function updateDerivedStats() {
+        const profBonus = Math.ceil((charData.profile.level || 1) / 4) + 1;
+        document.getElementById('prof-bonus').textContent = `+${profBonus}`;
+
+        statsList.forEach(stat => {
+            const score = parseInt(charData.stats[stat]) || 10;
+            const mod = getMod(score);
+            document.getElementById(`mod-${stat}`).textContent = formatMod(mod);
+            const isSaveProf = charData.saves[stat];
+            document.getElementById(`save-${stat}`).textContent = formatMod(mod + (isSaveProf ? profBonus : 0));
+        });
+
+        skillsList.forEach(skill => {
+            const mod = getMod(parseInt(charData.stats[skill.stat]) || 10);
+            const isProf = charData.skills[skill.id];
+            document.getElementById(`skill-${skill.id}`).textContent = formatMod(mod + (isProf ? profBonus : 0));
+        });
+    }
+
+    /* --- INVENTORY SYSTEM --- */
+    function renderInventory() {
+        const cats = ['Armor & Shields', 'Weapons', 'Consumables', 'Gear', 'Wands & Rings', 'Misc'];
+        const container = document.getElementById('inventory-lists');
+        container.innerHTML = cats.map(cat => {
+            const items = charData.inventory.items.filter(i => i.category === cat);
+            if(items.length === 0) return '';
+            return `
+            <details open><summary>${cat} (${items.length})</summary>
+                <div>${items.map(item => `
+                    <div class="item-card">
+                        <div class="item-header">
+                            <strong>${item.name}</strong>
+                            <div class="action-btns">
+                                <button onclick="editItem(${item.id})">✏️</button>
+                                <button onclick="deleteItem(${item.id})">🗑️</button>
+                            </div>
+                        </div>
+                        ${item.attr ? `<em>${item.attr}</em>` : ''}
+                        <p>${item.desc}</p>
+                    </div>`).join('')}
+                </div>
+            </details>`;
+        }).join('');
+    }
+
+    function saveItem() {
+        const id = document.getElementById('itemId').value;
+        const name = document.getElementById('itemName').value;
+        const desc = document.getElementById('itemDesc').value;
+        if (!name || !desc) return alert("Name and Description are required.");
+
+        const newItem = {
+            id: id ? parseInt(id) : Date.now(),
+            name, desc,
+            category: document.getElementById('itemCat').value,
+            attr: document.getElementById('itemAttr').value
+        };
+
+        if (id) {
+            const idx = charData.inventory.items.findIndex(i => i.id == id);
+            if (idx > -1) charData.inventory.items[idx] = newItem;
+        } else {
+            charData.inventory.items.push(newItem);
+        }
+
+        save(); renderInventory(); closeModal('itemModal');
+    }
+
+    function editItem(id) {
+        const item = charData.inventory.items.find(i => i.id == id);
+        if(!item) return;
+        document.getElementById('itemId').value = item.id;
+        document.getElementById('itemName').value = item.name;
+        document.getElementById('itemCat').value = item.category;
+        document.getElementById('itemAttr').value = item.attr;
+        document.getElementById('itemDesc').value = item.desc;
+        document.getElementById('itemModalTitle').innerText = "Edit Item";
+        openModal('itemModal');
+    }
+
+    function deleteItem(id) {
+        if(!confirm("Delete this item?")) return;
+        charData.inventory.items = charData.inventory.items.filter(i => i.id != id);
+        save(); renderInventory();
+    }
+
+    /* --- SPELL SYSTEM --- */
+    function renderSpells() {
+        const container = document.getElementById('spell-lists');
+        const levels = [0,1,2,3,4,5,6,7,8,9];
+        
+        container.innerHTML = levels.map(lvl => {
+            const spells = charData.spells.list.filter(s => parseInt(s.level) === lvl);
+            if(spells.length === 0) return '';
+            const title = lvl === 0 ? "Cantrips" : `Level ${lvl} Spells`;
+            return `
+            <details open><summary>${title} (${spells.length})</summary>
+                <div>${spells.map(spell => `
+                    <div class="item-card">
+                        <div class="item-header">
+                            <div>
+                                ${spell.prepared && lvl > 0 ? '📖 ' : ''}<strong>${spell.name}</strong> 
+                                <span style="font-size:0.8rem;color:var(--text-muted)">(${spell.school})</span>
+                            </div>
+                            <div class="action-btns">
+                                <button onclick="editSpell(${spell.id})">✏️</button>
+                                <button onclick="deleteSpell(${spell.id})">🗑️</button>
+                            </div>
+                        </div>
+                        <div style="font-size:0.85rem; margin-bottom:5px; color:var(--text-muted)">
+                            <strong>Time:</strong> ${spell.time} | <strong>Range:</strong> ${spell.range} | 
+                            <strong>Comp:</strong> ${spell.comp} | <strong>Dur:</strong> ${spell.dur}
+                        </div>
+                        ${spell.dmg ? `<em style="color:var(--primary)">Effect: ${spell.dmg}</em>` : ''}
+                        <p>${spell.desc}</p>
+                    </div>`).join('')}
+                </div>
+            </details>`;
+        }).join('');
+    }
+
+    function saveSpell() {
+        const id = document.getElementById('spellId').value;
+        const name = document.getElementById('spellName').value;
+        const desc = document.getElementById('spellDesc').value;
+        if (!name || !desc) return alert("Name and Description are required.");
+
+        const newSpell = {
+            id: id ? parseInt(id) : Date.now(),
+            name, desc,
+            level: parseInt(document.getElementById('spellLevel').value),
+            school: document.getElementById('spellSchool').value,
+            time: document.getElementById('spellTime').value,
+            range: document.getElementById('spellRange').value,
+            comp: document.getElementById('spellComp').value,
+            dur: document.getElementById('spellDur').value,
+            dmg: document.getElementById('spellDmg').value,
+            prepared: document.getElementById('spellPrepared').checked
+        };
+
+        if (id) {
+            const idx = charData.spells.list.findIndex(s => s.id == id);
+            if (idx > -1) charData.spells.list[idx] = newSpell;
+        } else {
+            charData.spells.list.push(newSpell);
+        }
+
+        save(); renderSpells(); closeModal('spellModal');
+    }
+
+    function editSpell(id) {
+        const spell = charData.spells.list.find(s => s.id == id);
+        if(!spell) return;
+        document.getElementById('spellId').value = spell.id;
+        document.getElementById('spellName').value = spell.name;
+        document.getElementById('spellLevel').value = spell.level;
+        document.getElementById('spellSchool').value = spell.school;
+        document.getElementById('spellTime').value = spell.time;
+        document.getElementById('spellRange').value = spell.range;
+        document.getElementById('spellComp').value = spell.comp;
+        document.getElementById('spellDur').value = spell.dur;
+        document.getElementById('spellDmg').value = spell.dmg;
+        document.getElementById('spellDesc').value = spell.desc;
+        document.getElementById('spellPrepared').checked = spell.prepared;
+        document.getElementById('spellModalTitle').innerText = "Edit Spell";
+        openModal('spellModal');
+    }
+
+    function deleteSpell(id) {
+        if(!confirm("Delete this spell?")) return;
+        charData.spells.list = charData.spells.list.filter(s => s.id != id);
+        save(); renderSpells();
+    }
+
+    /* --- UTILITIES --- */
+    function modifyHP(action) {
+        const input = document.getElementById('hp-mod-input');
+        const val = parseInt(input.value) || 0;
+        let hp = parseInt(charData.combat.hp) || 0;
+        const maxHp = parseInt(charData.combat.maxHp) || 0;
+
+        if (action === 'heal') charData.combat.hp = Math.min(maxHp, hp + val);
+        else charData.combat.hp = Math.max(0, hp - val);
+
+        document.querySelector('[data-bind="combat.hp"]').value = charData.combat.hp;
+        save(); input.value = '';
+    }
+
+    function openModal(id, mode) {
+        if(mode === 'new') {
+            document.querySelectorAll(`#${id} input:not([type="checkbox"]), #${id} textarea`).forEach(el => el.value = '');
+            document.querySelectorAll(`#${id} input[type="checkbox"]`).forEach(el => el.checked = false);
+            if(id === 'itemModal') document.getElementById('itemModalTitle').innerText = "Add Item";
+            if(id === 'spellModal') document.getElementById('spellModalTitle').innerText = "Add Spell";
+        }
+        document.getElementById(id).style.display = 'flex';
+    }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById(`tab-${tabId}`).classList.add('active');
+    }
+
+    function toggleTheme() {
+        const body = document.body;
+        const isDark = body.getAttribute('data-theme') === 'dark';
+        body.setAttribute('data-theme', isDark ? 'light' : 'dark');
+        localStorage.setItem('dd5e_theme', isDark ? 'light' : 'dark');
+    }
+
+    function exportData() {
+        const blob = new Blob([JSON.stringify(charData, null, 2)], {type: 'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `${charData.profile.name || 'Character'}_Dnd5e.json`;
+        a.click(); URL.revokeObjectURL(url);
+    }
+
+    function importData(event) {
+        const file = event.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = e => {
+            try {
+                charData = JSON.parse(e.target.result);
+                save(); location.reload();
+            } catch (err) { alert("Invalid save file."); }
+        };
+        reader.readAsText(file);
+    }
+
+    /* --- INITIALIZATION --- */
+    function init() {
+        if(localStorage.getItem('dd5e_theme') === 'dark') document.body.setAttribute('data-theme', 'dark');
+        generateStatBlocks();
+        generateSkillBlocks();
+        generateSpellSlots();
+        bindDataToInputs();
+        updateDerivedStats();
+        renderInventory();
+        renderSpells();
+    }
+
+    window.onload = init;
+</script>
+
+</body>
+</html>
+```
